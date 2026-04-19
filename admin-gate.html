@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collect Tweak | Gateway</title>
+    
+    <link rel="stylesheet" href="typography.css">
+    <link rel="stylesheet" href="animations.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { brand: '#9048FD', admin: '#10b981' },
+                    fontFamily: { sans: ['Poppins', 'sans-serif'], display: ['Space Grotesk', 'sans-serif'], mono: ['Fira Code', 'monospace'] }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #050505; color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .grid-bg { background-image: radial-gradient(rgba(144, 72, 253, 0.08) 1px, transparent 1px); background-size: 30px 30px; }
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .reveal-up { opacity: 0; transform: translateY(30px); filter: blur(10px); }
+        .card-hover:hover { transform: translateY(-10px) scale(1.02); border-color: var(--hover-color); box-shadow: 0 30px 60px -12px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body class="grid-bg">
+    
+    <div class="max-w-4xl w-full p-8">
+        <div class="text-center mb-16 reveal-up" id="header">
+            <h1 class="font-display text-5xl uppercase tracking-tighter mb-4">Selecione o <span class="text-brand">Destino</span></h1>
+            <p class="font-mono text-[10px] text-white/40 tracking-[0.5em] uppercase">Authorized Admin Access // Master Node</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 h-80">
+            <!-- User Portal Card -->
+            <div onclick="navigateTo('user')" class="glass-card p-10 flex flex-col items-center justify-center cursor-pointer card-hover reveal-up" style="--hover-color: #9048FD">
+                <div class="w-20 h-20 bg-brand/10 border border-brand/20 rounded-3xl flex items-center justify-center mb-8">
+                    <i data-lucide="user" class="w-10 h-10 text-brand"></i>
+                </div>
+                <h2 class="font-display text-2xl uppercase mb-2">Portal Usuário</h2>
+                <p class="font-mono text-[9px] text-white/30 tracking-widest">Acesso a Software & Suporte</p>
+            </div>
+
+            <!-- Admin Center Card -->
+            <div onclick="navigateTo('admin')" class="glass-card p-10 flex flex-col items-center justify-center cursor-pointer card-hover reveal-up" style="--hover-color: #10b981">
+                <div class="w-20 h-20 bg-admin/10 border border-admin/20 rounded-3xl flex items-center justify-center mb-8">
+                    <i data-lucide="layout-dashboard" class="w-10 h-10 text-admin"></i>
+                </div>
+                <h2 class="font-display text-2xl uppercase mb-2 text-admin">Command Center</h2>
+                <p class="font-mono text-[9px] text-white/30 tracking-widest">Vendas, Usuários & Servidor</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            gsap.to('.reveal, .reveal-up', { 
+                opacity: 1, 
+                y: 0, 
+                filter: 'blur(0px)', 
+                duration: 1.2, 
+                stagger: 0.15, 
+                ease: 'power4.out',
+                onStart: () => document.body.classList.add('is-animating')
+            });
+        });
+
+        function navigateTo(dest) {
+            localStorage.setItem('admin_view_pref', dest);
+            window.location.href = 'dashboard.html';
+        }
+
+        // Security Check
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = JSON.parse(localStorage.getItem('collect_user'));
+            if (!user || user.plan !== 'Admin') {
+                window.location.href = 'dashboard.html';
+            }
+        });
+    </script>
+</body>
+</html>

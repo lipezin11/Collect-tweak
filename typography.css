@@ -1,0 +1,74 @@
+/* ========================================
+   COLLECT TWEAK - Professional Typography System
+   Powered by UI/UX Pro Max 
+   ======================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Space+Grotesk:wght@300;500;700&family=Fira+Code:wght@400;600&display=swap');
+
+:root {
+    /* Font Families */
+    --font-primary: 'Outfit', sans-serif;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'Fira Code', monospace;
+}
+
+body {
+    font-family: var(--font-primary);
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: 0.01em;
+}
+
+/* Headers - Space Grotesk for that distinct technical look */
+h1, h2, h3, .font-display {
+    font-family: var(--font-display) !important;
+    letter-spacing: -0.02em !important;
+    word-spacing: 0.05em;
+}
+
+/* Mono Elements - Fira Code for better legibility than JetBrains */
+.hacker-text, .mono-text, .font-mono, .mono-label {
+    font-family: var(--font-mono) !important;
+    letter-spacing: 0.1em !important; /* Fixing the "grudada" (tight) issue */
+}
+
+/* Specific spacing fixes */
+.hero-title {
+    font-family: var(--font-display) !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.04em !important;
+    line-height: 0.95 !important;
+    text-transform: uppercase;
+}
+
+.nav-link {
+    font-family: var(--font-display);
+    letter-spacing: 0.05em !important;
+    font-weight: 600 !important;
+}
+
+.btn-cta, .joly-btn, button {
+    font-family: var(--font-display);
+    letter-spacing: 0.08em !important;
+    font-weight: 700 !important;
+}
+
+/* Section Tags */
+.section-tag {
+    font-family: var(--font-mono);
+    letter-spacing: 0.4em !important;
+    font-weight: 600;
+}
+
+/* Dashboard Specifics */
+#dash-welcome-name {
+    letter-spacing: -0.02em;
+}
+
+#dash-name {
+    letter-spacing: 0.05em;
+}
+
+.price-card .price-amount {
+    font-family: var(--font-display);
+    letter-spacing: -0.05em;
+}

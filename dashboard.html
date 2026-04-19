@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collect Tweak | Dashboard v8.4</title>
+    
+    <!-- Professional Typography System (Space Grotesk + Outfit + Fira Code) -->
+    <link rel="stylesheet" href="typography.css">
+    <link rel="stylesheet" href="animations.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { brand: '#9048FD', 'core-bg': '#050505' },
+                    fontFamily: { sans: ['Poppins', 'sans-serif'], display: ['Bebas Neue', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root { --brand: #9048FD; }
+        body { background-color: #050505; color: white; font-family: 'Poppins', sans-serif; overflow-x: hidden; }
+        
+        /* ── Efeitos de Fundo ── */
+        .grid-bg { background-image: radial-gradient(rgba(144, 72, 253, 0.08) 1px, transparent 1px); background-size: 30px 30px; }
+        .glow-orb { position: fixed; width: 600px; height: 600px; background: radial-gradient(circle, rgba(144,72,253,0.1) 0%, transparent 70%); border-radius: 50%; pointer-events: none; z-index: -1; filter: blur(80px); }
+
+        /* ── Glassmorphism Premium ── */
+        .glass-card { 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            backdrop-filter: blur(25px); 
+            border-radius: 24px;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .glass-card:hover { border-color: rgba(144, 72, 253, 0.3); transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+
+        /* ── Typography & Text ── */
+        .hacker-text { font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.2em; font-size: 10px; color: rgba(255,255,255,0.4); }
+        .gradient-title { background: linear-gradient(to bottom, #fff, rgba(255,255,255,0.5)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* ── Animations ── */
+        .reveal { opacity: 1; transform: none; filter: none; }
+        .is-animating .reveal { opacity: 0; transform: translateY(30px); filter: blur(10px); }
+        
+        /* ── Avatar Fix ── */
+        .avatar-container { position: relative; width: 64px; height: 64px; }
+        .avatar-container img { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; border: 2px solid rgba(144, 72, 253, 0.3); background: #111; }
+        .avatar-glint { position: absolute; inset: 0; border-radius: 18px; background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent); animation: glint 3s infinite; }
+        @keyframes glint { 0% { transform: translateX(-100%) translateY(-100%); } 100% { transform: translateX(100%) translateY(100%); } }
+
+        /* ── Custom Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #1a1a1a; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--brand); }
+        /* ── EMERGENCY SECURITY SHIELD ── */
+        /* Hides everything sensitive by default at CSS engine level */
+        #admin-view, #admin-switch-link, .admin-exclusive-zone, .preview-section, #restore-admin-btn, #preview-mode-banner {
+            display: none !important;
+        }
+
+        /* Access rule: ONLY visible if explicitly authorized by JS */
+        .auth-admin-authorized #admin-view, 
+        .auth-admin-authorized #admin-switch-link,
+        .auth-admin-authorized .admin-exclusive-zone,
+        .auth-admin-authorized .preview-section,
+        .auth-admin-authorized #restore-admin-btn,
+        .auth-admin-authorized #preview-mode-banner {
+            display: block !important;
+        }
+    </style>
+</head>
+<body class="grid-bg min-h-screen">
+    <div class="glow-orb" style="top: -200px; left: -200px;"></div>
+    <div class="glow-orb" style="bottom: -200px; right: -200px; opacity: 0.5;"></div>
+
+    <div id="preview-mode-banner" class="fixed top-0 left-0 w-full h-1 bg-brand z-[9999] opacity-0 transition-opacity"></div>
+    <button id="restore-admin-btn" onclick="restoreAdmin()" class="fixed bottom-10 right-10 z-[1000] px-8 py-4 bg-emerald-500 text-black font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-2xl scale-0 transition-all hover:scale-110 active:scale-95 flex items-center gap-4">
+        <i data-lucide="shield-check" class="w-4 h-4"></i> Restaurar Admin
+    </button>
+
+    <div class="glow-orb" style="bottom: -200px; right: -200px; opacity: 0.5;"></div>
+
+    <div class="max-w-[1600px] mx-auto p-4 md:p-12 transition-all duration-700" id="main-layout-container">
+        
+        <!-- Header Section -->
+        <header class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10 md:mb-16 reveal" id="header-reveal">
+            <div class="flex items-center gap-4 md:gap-6 w-full lg:w-auto">
+                <button onclick="goBack()" class="w-12 h-12 md:w-14 md:h-14 glass-card flex items-center justify-center group shrink-0">
+                    <i data-lucide="chevron-left" class="w-5 h-5 md:w-6 md:h-6 text-white/40 group-hover:text-brand transition-colors"></i>
+                </button>
+                <div>
+                    <p class="hacker-text text-brand mb-1">Status: Conectado</p>
+                    <h1 class="font-display text-4xl uppercase tracking-tighter leading-none mb-1">Bem-vindo, <span id="dash-welcome-name" class="text-brand">USUÁRIO</span></h1>
+                    <div class="flex items-center gap-3">
+                        <span class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        <p id="system-status-text" class="hacker-text">Authorized User Access // Core v8.4.2</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 md:gap-5 glass-card p-3 md:p-4 pr-6 md:pr-8 border-brand/20 w-full lg:w-auto overflow-hidden">
+                <div class="avatar-container shrink-0">
+                    <img id="dash-avatar" src="" alt="User" class="w-12 h-12 md:w-16 md:h-16" referrerpolicy="no-referrer" onerror="this.src='https://ui-avatars.com/api/?background=9048FD&color=fff&name=User'">
+                    <div class="avatar-glint"></div>
+                </div>
+                <div class="min-w-0">
+                    <h3 id="dash-name" class="font-bold text-base md:text-lg uppercase tracking-wider leading-none mb-1 truncate">LOGGING IN...</h3>
+                    <p id="dash-email" class="font-mono text-[9px] md:text-[10px] text-zinc-500 lowercase truncate">syncing account data</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Grid Container -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Sidebar: Plan & Status -->
+            <div class="lg:col-span-4 space-y-8">
+                <div class="glass-card p-6 md:p-8 reveal" id="plan-reveal">
+                    <div class="flex items-center justify-between mb-8">
+                        <span class="hacker-text text-brand">Subscription Path</span>
+                        <i data-lucide="shield-check" class="w-5 h-5 text-brand"></i>
+                    </div>
+                    
+                    <div class="relative overflow-hidden bg-brand/5 border border-brand/20 rounded-3xl p-6 md:p-8 mb-8">
+                        <div class="absolute -right-8 -top-8 w-32 h-32 bg-brand/10 blur-3xl"></div>
+                        <h2 class="font-display text-4xl md:text-5xl uppercase leading-none mb-2">Elite <span class="text-brand">Pro</span></h2>
+                        <p class="text-[10px] md:text-[11px] font-bold text-white/30 uppercase tracking-[0.2em] mb-6">Lifetime Optimization</p>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3 text-xs font-medium text-white/60">
+                                <div class="w-5 h-5 rounded-full bg-brand/20 flex items-center justify-center shrink-0"><i data-lucide="cpu" class="w-3 h-3 text-brand"></i></div>
+                                <span class="truncate">Kernel Master Access</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-xs font-medium text-white/60">
+                                <div class="w-5 h-5 rounded-full bg-brand/20 flex items-center justify-center shrink-0"><i data-lucide="zap" class="w-3 h-3 text-brand"></i></div>
+                                <span class="truncate">Input Lag Elimination</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="w-full py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all">
+                        Upgrade License
+                    </button>
+                </div>
+
+                <!-- Activation Key Section -->
+                <div class="glass-card p-8 reveal" id="activation-reveal">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-2 h-2 rounded-full bg-brand animate-pulse"></div>
+                        <span class="hacker-text">Chave de Ativação</span>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="relative">
+                            <input type="text" id="activation-key" placeholder="XXXX-XXXX-XXXX" 
+                                class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 font-mono text-xs text-white placeholder:text-zinc-600 focus:border-brand/50 outline-none transition-all">
+                        </div>
+                        <button onclick="activateSystem()" id="activate-btn" class="w-full py-3 bg-brand/10 hover:bg-brand border border-brand/20 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all">
+                            Vincular Chave
+                        </button>
+                    </div>
+                    <p id="activation-status" class="mt-4 hacker-text text-center text-[8px] opacity-0 transition-all"></p>
+                </div>
+
+                <!-- Admin View Switcher (Hidden Link) -->
+                <div id="admin-switch-link" class="hidden pt-4">
+                    <button onclick="goBack()" class="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white/5 border border-white/5 rounded-2xl text-[9px] font-black uppercase tracking-[0.3em] opacity-40 hover:opacity-100 hover:bg-white/10 transition-all group">
+                        <i data-lucide="arrow-left-right" class="w-3 h-3 group-hover:rotate-180 transition-transform duration-500"></i> Alternar Dashboard
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content Area: Analytics & Tools -->
+            <div class="lg:col-span-8 space-y-8">
+                
+                <div id="user-view" class="hidden space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <!-- Performance Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                        <div class="glass-card p-6 md:p-8 text-center reveal">
+                            <p class="hacker-text mb-2 md:mb-4 text-brand">Otimizações</p>
+                            <p id="user-stats-opts" class="text-4xl md:text-5xl font-bold tracking-tight">0</p>
+                        </div>
+                        <div class="glass-card p-6 md:p-8 text-center reveal">
+                            <p class="hacker-text mb-2 md:mb-4 text-brand">Expiração</p>
+                            <p id="user-stats-expiry" class="text-xl md:text-2xl font-bold tracking-tight opacity-70">--/--</p>
+                        </div>
+                        <div class="glass-card p-6 md:p-8 text-center sm:col-span-2 lg:col-span-1 reveal">
+                            <p class="hacker-text mb-2 md:mb-4 text-brand">Hardware</p>
+                            <p class="text-4xl md:text-5xl font-bold tracking-tight">01</p>
+                        </div>
+                    </div>
+
+                    <!-- Downloads Section -->
+                    <div class="glass-card p-6 md:p-10 reveal" id="tools-reveal">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 md:mb-12">
+                            <h2 class="font-display text-3xl md:text-4xl uppercase tracking-tight">Software & <span class="text-brand">Privilégios</span></h2>
+                            <span class="font-mono text-[8px] md:text-[9px] text-white/20 tracking-widest px-3 md:4 py-1 border border-white/10 rounded-full">v8.4.2 STABLE</span>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <!-- Item 1: App Download -->
+                            <div class="flex flex-col md:flex-row items-center justify-between p-4 md:p-6 bg-white/[0.02] border border-white/5 rounded-2xl md:rounded-3xl hover:bg-white/[0.04] transition-all group gap-4 md:gap-6">
+                                <div class="flex items-center gap-4 md:gap-6 w-full md:w-auto">
+                                    <div class="w-12 h-12 md:w-16 md:h-16 shrink-0 rounded-xl md:rounded-2xl bg-brand/5 border border-brand/20 flex items-center justify-center group-hover:bg-brand group-hover:border-white/20 transition-all duration-500">
+                                        <i data-lucide="download-cloud" class="w-6 h-6 md:w-7 md:h-7 text-brand group-hover:text-white transition-colors"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="font-bold text-sm md:text-base uppercase tracking-wide group-hover:text-brand transition-colors truncate">Download Collect</h4>
+                                        <p class="hacker-text text-[8px] md:text-[10px]">Elite Edition Client</p>
+                                    </div>
+                                </div>
+                                <button class="w-full md:w-auto px-8 md:px-10 py-4 md:py-5 bg-brand rounded-xl md:rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:scale-105 hover:shadow-[0_0_30px_rgba(144,72,253,0.5)] transition-all shrink-0">Baixar</button>
+                            </div>
+
+                            <!-- Divider -->
+                            <div id="restricted-divider" class="flex items-center py-4 md:py-6">
+                                <div class="flex-grow border-t border-white/[0.03]"></div>
+                                <span class="mx-4 md:mx-8 hacker-text text-[7px] md:text-[8px] opacity-20 tracking-[0.5em]">Serviços Restritos</span>
+                                <div class="flex-grow border-t border-white/[0.03]"></div>
+                            </div>
+
+                            <!-- Item 2: Private Optimization -->
+                             <div id="private-opt-card" class="flex flex-col md:flex-row items-center justify-between p-4 md:p-6 bg-white/[0.01] border border-white/[0.05] rounded-2xl md:rounded-3xl opacity-40 grayscale gap-4 md:gap-6 transition-all duration-500">
+                                 <div class="flex items-center gap-4 md:gap-6 w-full md:w-auto">
+                                     <div id="private-icon-bg" class="w-12 h-12 md:w-16 md:h-16 shrink-0 rounded-xl md:rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center transition-all">
+                                         <i id="private-icon" data-lucide="calendar" class="w-6 h-6 md:w-7 md:h-7 text-white/20 transition-colors"></i>
+                                     </div>
+                                     <div class="min-w-0">
+                                         <h4 id="private-title" class="font-bold text-sm md:text-base uppercase tracking-wide text-white/40 truncate">Otimização Particular</h4>
+                                         <p id="private-desc" class="hacker-text text-[8px] md:text-[10px] opacity-40 truncate">Suporte Via Especialista</p>
+                                     </div>
+                                 </div>
+                                 <button id="private-opt-btn" class="w-full md:w-auto px-8 md:px-10 py-4 md:py-5 bg-white/5 border border-white/5 rounded-xl md:rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/10 cursor-not-allowed transition-all truncate">Indisponível</button>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin View (Command Center) -->
+                <div id="admin-view" class="admin-exclusive-zone space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <div class="glass-card p-12 border-emerald-500/10 bg-emerald-500/[0.01]">
+                                <h2 class="font-display text-5xl uppercase tracking-tighter">Admin <span class="text-white">Panel</span></h2>
+                            </div>
+                            
+                            <!-- Admin Tabs Navigation -->
+                            <div class="flex bg-black/40 p-1 rounded-xl border border-white/5 overflow-x-auto custom-scrollbar no-wrap">
+                                <button onclick="switchAdminTab('metrics')" id="tab-metrics" class="flex-1 whitespace-nowrap px-4 md:px-8 py-3 bg-emerald-500 text-black text-[8px] md:text-[9px] font-black uppercase tracking-widest rounded-lg transition-all">Command</button>
+                                <button onclick="switchAdminTab('live')" id="tab-live" class="flex-1 whitespace-nowrap px-4 md:px-8 py-3 text-white/40 text-[8px] md:text-[9px] font-black uppercase tracking-widest rounded-lg hover:text-white transition-all flex items-center justify-center gap-2">
+                                    <span class="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-red-500 animate-pulse"></span> Terminal
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="admin-panel-metrics" class="space-y-6 md:space-y-10 mt-10 md:mt-16">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+                                <!-- Volume Bruto Card -->
+                                <div class="relative group">
+                                    <div class="absolute -inset-1 bg-emerald-500/20 rounded-[40px] blur opacity-0 group-hover:opacity-100 transition duration-1000"></div>
+                                    <div class="relative p-6 md:p-10 bg-black/60 border border-white/5 rounded-3xl md:rounded-[32px] overflow-hidden text-center md:text-left">
+                                        <p class="hacker-text mb-4 md:mb-8 text-white/30 uppercase tracking-[0.3em]">Volume Bruto</p>
+                                        <div class="flex flex-col md:flex-row items-center md:items-baseline gap-2 md:gap-4">
+                                            <span class="text-3xl md:text-5xl font-bold font-display text-emerald-500">R$ 14.280</span>
+                                            <span class="text-[8px] md:text-[10px] font-mono font-bold text-emerald-500/40 uppercase tracking-widest">Sincronizado</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Instâncias Ativas Card -->
+                                <div class="relative group">
+                                    <div class="absolute -inset-1 bg-emerald-500/20 rounded-[40px] blur opacity-0 group-hover:opacity-100 transition duration-1000"></div>
+                                    <div class="relative p-6 md:p-10 bg-black/60 border border-white/5 rounded-3xl md:rounded-[32px] overflow-hidden text-center md:text-left">
+                                        <p class="hacker-text mb-4 md:mb-8 text-white/30 uppercase tracking-[0.3em]">Instâncias Ativas</p>
+                                        <div class="flex flex-col md:flex-row items-center md:items-baseline gap-2 md:gap-4">
+                                            <span class="text-3xl md:text-5xl font-bold font-display text-emerald-500">842</span>
+                                            <span class="text-[8px] md:text-[10px] font-mono font-bold text-emerald-500/40 uppercase tracking-widest">Usuários</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- NEW: Interactive Analytics Hub (NOW INSIDE ADMIN PANEL) -->
+                            <div class="glass-card p-6 md:p-10 border-emerald-500/10 mb-6 md:mb-10 reveal-up">
+                                <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8 md:mb-12">
+                                    <div class="w-full">
+                                        <h3 class="font-display text-3xl uppercase tracking-tighter">Fluxo de <span id="chart-title" class="text-emerald-500">Vendas</span></h3>
+                                        <p class="hacker-text text-emerald-500/50 mt-1 uppercase tracking-widest text-[8px]">Live Data Stream</p>
+                                    </div>
+                                    <div class="flex bg-black/40 p-1 rounded-xl border border-white/5 w-full xl:w-auto">
+                                        <button onclick="updateChartMode('sales')" id="btn-sales" class="flex-1 xl:flex-none px-6 py-2 bg-emerald-500 text-black text-[8px] font-black uppercase tracking-widest rounded-lg transition-all">Vendas</button>
+                                        <button onclick="updateChartMode('users')" id="btn-users" class="flex-1 xl:flex-none px-6 py-2 text-white/40 text-[8px] font-black uppercase tracking-widest rounded-lg hover:text-white transition-all">Usuários</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="relative h-[300px] md:h-[400px] w-full">
+                                    <canvas id="adminChart"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="p-6 md:p-10 bg-emerald-500/[0.03] border border-emerald-500/10 rounded-3xl md:rounded-[32px] flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-10">
+                                <div class="flex flex-col md:flex-row items-center gap-4 md:gap-8 text-center md:text-left">
+                                    <i data-lucide="shield-alert" class="w-8 h-8 md:w-10 md:h-10 text-emerald-500 opacity-50 shrink-0"></i>
+                                    <div>
+                                        <h4 class="font-display text-lg md:text-xl uppercase tracking-tight text-white/80">Kernel Override</h4>
+                                        <p class="hacker-text text-[7px] md:text-[9px] text-emerald-500/50 mt-1 uppercase tracking-widest">Operational Critical Systems</p>
+                                    </div>
+                                </div>
+                                <button class="w-full lg:w-auto px-10 md:px-12 py-4 md:py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl md:rounded-2xl font-bold text-[9px] md:text-[10px] uppercase tracking-[0.3em] shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all">Reiniciar</button>
+                            </div>
+
+                            <!-- NEW: Plan Preview Section (NOW INSIDE ADMIN PANEL) -->
+                            <div class="admin-exclusive-zone mt-16 pt-16 border-t border-white/5">
+                                <div class="flex items-center py-6 mb-8">
+                                    <div class="flex-grow border-t border-emerald-500/10"></div>
+                                    <span class="mx-8 hacker-text text-emerald-500/60 text-[8px] tracking-[0.5em] uppercase">Simulador de Perspectiva</span>
+                                    <div class="flex-grow border-t border-emerald-500/10"></div>
+                                </div>
+                                
+                                <h3 class="font-display text-2xl uppercase tracking-tighter mb-8 px-2">Planos para Visualizar</h3>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div onclick="previewPlan('Elite')" class="p-8 bg-zinc-900/50 border border-white/5 rounded-[28px] hover:border-brand/30 hover:bg-zinc-900 transition-all cursor-pointer group">
+                                        <div class="flex items-center justify-between mb-6">
+                                            <div class="w-12 h-12 bg-brand/10 rounded-2xl flex items-center justify-center group-hover:bg-brand/20 transition-all">
+                                                <i data-lucide="zap" class="w-6 h-6 text-brand"></i>
+                                            </div>
+                                            <span class="font-mono text-[8px] text-brand/60 uppercase tracking-widest px-3 py-1 border border-brand/20 rounded-full">Elite Pro</span>
+                                        </div>
+                                        <h4 class="font-display text-xl uppercase mb-2">Ver como Elite</h4>
+                                        <p class="font-mono text-[9px] text-white/30 tracking-widest uppercase">Visualizar software & otimizações</p>
+                                    </div>
+
+                                    <div onclick="previewPlan('Free')" class="p-8 bg-zinc-900/50 border border-white/5 rounded-[28px] hover:border-white/20 hover:bg-zinc-900 transition-all cursor-pointer group">
+                                        <div class="flex items-center justify-between mb-6">
+                                            <div class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center group-hover:bg-white/10 transition-all">
+                                                <i data-lucide="user" class="w-6 h-6 text-white/40"></i>
+                                            </div>
+                                            <span class="font-mono text-[8px] text-white/20 uppercase tracking-widest px-3 py-1 border border-white/10 rounded-full">Basic Plan</span>
+                                        </div>
+                                        <h4 class="font-display text-xl uppercase mb-2">Ver como Free</h4>
+                                        <p class="font-mono text-[9px] text-white/30 tracking-widest uppercase">Visualizar serviços restritos</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel 2: Live Operations (NEW) -->
+                        <div id="admin-panel-live" class="hidden space-y-8 animate-in fade-in duration-500">
+                            <div class="p-8 bg-black/60 border border-white/5 rounded-[32px] font-mono">
+                                <div class="flex items-center justify-between mb-8 border-b border-white/5 pb-6">
+                                    <h3 class="text-emerald-500 text-sm uppercase tracking-[0.3em]">Operational Live Feed</h3>
+                                    <span class="text-[10px] text-white/20 uppercase">Core v8.4 // Real-Time Socket</span>
+                                </div>
+                                <div id="live-terminal-feed" class="h-[600px] overflow-y-auto space-y-3 custom-scrollbar pr-4">
+                                    <!-- Log Entries will appear here -->
+                                    <p class="text-[10px] text-emerald-500/40">[SYSTEM]: Sincronizando com Base de Dados...</p>
+                                    <p class="text-[10px] text-emerald-500/40">[SYSTEM]: Socket conectado. Escutando eventos...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const userStr = localStorage.getItem('collect_user');
+            
+            // 🚨 SEGURANÇA: Se não houver usuário logado, expulsa para o login
+            if (!userStr) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const user = JSON.parse(userStr);
+            console.log('Sessão ativa:', user.email);
+
+            if (user) {
+
+                // Global Entrance Animation
+                gsap.to('.reveal, .reveal-up', { 
+                    opacity: 1, 
+                    y: 0, 
+                    filter: 'blur(0px)', 
+                    duration: 1.2, 
+                    stagger: 0.1, 
+                    ease: 'power4.out',
+                    onStart: () => document.body.classList.add('is-animating')
+                });
+                
+                // Init Charts if Admin View
+                if (user.plan === 'Admin') {
+                    setTimeout(initChart, 500);
+                }
+
+                // Set data with smooth fade
+                const nameEl = document.getElementById('dash-name');
+                const emailEl = document.getElementById('dash-email');
+                const avatarEl = document.getElementById('dash-avatar');
+
+                // Garante que o avatar do Google carregue com alta qualidade
+                // Substitui s96-c por s256-c se for URL do Google
+                let profilePic = user.avatar;
+                if (profilePic && profilePic.includes('googleusercontent.com')) {
+                    profilePic = profilePic.replace(/s96-c/i, 's256-c');
+                }
+
+                nameEl.textContent = user.name;
+                document.getElementById('dash-welcome-name').textContent = user.name.split(' ')[0]; // Welcome with First Name
+                emailEl.textContent = user.email;
+                avatarEl.src = profilePic;
+
+                // ── DYNAMIC USER STATS ──
+                // Date logic: 1 year from now
+                const expiryDate = new Date();
+                expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+                const formattedDate = expiryDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                document.getElementById('user-stats-expiry').textContent = formattedDate;
+
+                // Sync with Google Auth / Simulated App Login
+                const userOpts = user.optimizations || 0;
+                document.getElementById('user-stats-opts').textContent = userOpts;
+
+                // ── PLAN SENSITIVE LOGIC ──
+                updateDashboardUI(user.plan || 'Free');
+
+                // ── GSAP Reveals ──
+                const tl = gsap.timeline();
+                tl.to('#header-reveal', { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1, ease: 'power4.out' });
+                
+                // Animates ONLY the revealed view
+                const activeViewId = user.plan === 'Admin' ? '#admin-view' : '#user-view';
+                tl.to(`${activeViewId} .reveal, ${activeViewId} .reveal-up`, { 
+                    opacity: 1, 
+                    y: 0, 
+                    filter: 'blur(0px)', 
+                    duration: 0.8, 
+                    stagger: 0.08, 
+                    ease: 'power3.out' 
+                }, "-=0.6");
+
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        // 🔐 SEGURANÇA REFORÇADA: Chaves removidas do frontend. 
+        // A validação agora é feita exclusivamente via API no servidor.
+
+
+        async function getHWID() {
+            // Gera um ID persistente para o dispositivo (Simulado para Web, real no App)
+            let hwid = localStorage.getItem('collect_hwid');
+            if (!hwid) {
+                hwid = 'WEB-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now();
+                localStorage.setItem('collect_hwid', hwid);
+            }
+            return hwid;
+        }
+
+        async function activateSystem() {
+            const input = document.getElementById('activation-key');
+            const status = document.getElementById('activation-status');
+            const btn = document.getElementById('activate-btn');
+            const key = input.value.trim().toUpperCase();
+
+            if (!key) return;
+
+            // UI Feedback: Loading
+            status.textContent = 'VERIFICANDO CREDENCIAIS...';
+            status.className = 'mt-4 hacker-text text-center text-[8px] text-white/40 opacity-100';
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-wait');
+
+            try {
+                const hwid = await getHWID();
+                const response = await fetch('/api/licenses/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key, hwid })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    const plan = data.plan; // "Admin", "Elite", "Free"
+                    
+                    // Update local storage for session
+                    const user = JSON.parse(localStorage.getItem('collect_user')) || {};
+                    user.plan = plan;
+                    user.lastValidated = new Date().toISOString();
+                    localStorage.setItem('collect_user', JSON.stringify(user));
+
+                    // Success UI
+                    status.textContent = `SISTEMA ${plan.toUpperCase()} ATIVADO COM SUCESSO`;
+                    status.className = 'mt-4 hacker-text text-center text-[10px] text-green-500 opacity-100';
+                    btn.classList.remove('bg-brand/10', 'bg-red-600');
+                    btn.classList.add('bg-green-600', 'border-green-500');
+                    
+                    // Update UI live
+                    updateDashboardUI(plan);
+                    
+                    setTimeout(() => {
+                        status.style.opacity = '0';
+                        btn.disabled = false;
+                        btn.classList.remove('bg-green-600', 'border-green-500', 'opacity-50', 'cursor-wait');
+                    }, 3000);
+
+                } else {
+                    // Erro retornado pela API (Chave inválida, HWID mismatch, etc)
+                    status.textContent = `ERRO: ${data.error || 'FALHA NA VALIDAÇÃO'}`;
+                    status.className = 'mt-4 hacker-text text-center text-[10px] text-red-500 opacity-100';
+                    btn.classList.add('bg-red-600', 'border-red-500');
+                    setTimeout(() => {
+                        status.style.opacity = '0';
+                        btn.disabled = false;
+                        btn.classList.remove('bg-red-600', 'border-red-500', 'opacity-50', 'cursor-wait');
+                    }, 3000);
+                }
+            } catch (err) {
+                console.error('Security Breach or Network Error:', err);
+                status.textContent = 'ERRO DE CONEXÃO COM O SERVIDOR DE SEGURANÇA';
+                status.className = 'mt-4 hacker-text text-center text-[10px] text-red-500 opacity-100';
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-wait');
+            }
+        }
+
+        function updateDashboardUI(plan) {
+            const adminView = document.getElementById('admin-view');
+            const userView = document.getElementById('user-view');
+            const adminBadge = document.getElementById('admin-badge');
+            const adminSwitch = document.getElementById('admin-switch-link');
+            const viewPref = localStorage.getItem('admin_view_pref') || 'user';
+            
+            if (plan === 'Admin') {
+                // ACTIVATE ADMIN CLEARANCE
+                document.body.classList.add('auth-admin-authorized');
+                
+                if (viewPref === 'admin') {
+                    if(userView) userView.classList.add('hidden');
+                    if(adminView) adminView.classList.remove('hidden');
+                } else {
+                    if(adminView) adminView.classList.add('hidden');
+                    if(userView) userView.classList.remove('hidden');
+                }
+
+                if(adminBadge) adminBadge.style.display = 'flex';
+                lucide.createIcons();
+            } else {
+                // PERMANENT BANS ON SENSITIVE DATA
+                document.body.classList.remove('auth-admin-authorized');
+                if (adminView) adminView.remove();
+                if (adminSwitch) adminSwitch.remove();
+                
+                // Show only the standard gateway
+                if (userView) userView.classList.remove('hidden');
+                if (adminBadge) adminBadge.remove();
+                
+                // Delete the preview plan section shown in your screenshot
+                const previewSection = document.querySelector('.pt-24.pb-12.border-t');
+                if (previewSection) previewSection.remove();
+                
+                lucide.createIcons();
+            }
+        }
+
+        function lockPremium(card, btn) {
+            if (!card || !btn) return;
+            // Container reset
+            card.classList.add('opacity-40', 'grayscale');
+            card.style.filter = "grayscale(100%)";
+            card.style.opacity = "0.4";
+
+            // Sub-elements reset
+            const title = document.getElementById('private-title');
+            const desc = document.getElementById('private-desc');
+            const iconBg = document.getElementById('private-icon-bg');
+            const icon = document.getElementById('private-icon');
+
+            if (title) {
+                title.classList.add('text-white/40');
+                title.classList.remove('text-white');
+            }
+            if (desc) desc.classList.add('opacity-40');
+            if (iconBg) {
+                iconBg.classList.replace('bg-brand/10', 'bg-zinc-900');
+                iconBg.classList.remove('border-brand/30');
+            }
+            if (icon) {
+                icon.classList.replace('text-brand', 'text-white/20');
+                icon.style.opacity = "0.2";
+            }
+
+            // Button reset
+            btn.className = "w-full sm:w-auto px-10 py-5 bg-white/5 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/10 cursor-not-allowed transition-all";
+            btn.textContent = 'Indisponível';
+            btn.style.cursor = "not-allowed";
+            btn.style.opacity = "0.1";
+        }
+
+        function unlockPremium(card, btn) {
+            if (!card || !btn) return;
+            
+            // Container
+            card.className = card.className.replace('opacity-40', 'opacity-100');
+            card.className = card.className.replace('grayscale', 'grayscale-0');
+            card.style.filter = "none";
+            card.style.opacity = "1";
+
+            // Title & Description
+            const title = document.getElementById('private-title');
+            const desc = document.getElementById('private-desc');
+            if (title) {
+                title.classList.remove('text-white/40');
+                title.classList.add('text-white');
+            }
+            if (desc) desc.classList.remove('opacity-40');
+
+            // Icon Container
+            const iconBg = document.getElementById('private-icon-bg');
+            const icon = document.getElementById('private-icon');
+            if (iconBg) {
+                iconBg.classList.replace('bg-zinc-900', 'bg-brand/10');
+                iconBg.classList.add('border-brand/30');
+            }
+            if (icon) {
+                icon.classList.replace('text-white/20', 'text-brand');
+                icon.style.opacity = "1";
+            }
+
+            // Button
+            btn.classList.remove('text-white/10', 'cursor-not-allowed', 'bg-white/5', 'text-white/20');
+            btn.classList.add('bg-brand', 'text-white', 'hover:scale-105', 'shadow-[0_0_20px_rgba(144,72,253,0.3)]');
+            btn.textContent = 'Agendar';
+            btn.style.cursor = "pointer";
+            btn.style.opacity = "1";
+        }
+
+        // --- CHART ANALYTICS ---
+        let adminChart = null;
+        const chartData = {
+            sales: {
+                label: 'Vendas (R$)',
+                data: [4200, 7800, 5100, 9200, 12400, 10100, 14280],
+                color: '#10b981'
+            },
+            users: {
+                label: 'Novos Usuários',
+                data: [120, 240, 180, 450, 320, 510, 842],
+                color: '#3b82f6'
+            }
+        };
+
+        function initChart() {
+            const ctx = document.getElementById('adminChart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+            gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+
+            adminChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+                    datasets: [{
+                        label: chartData.sales.label,
+                        data: chartData.sales.data,
+                        borderColor: chartData.sales.color,
+                        borderWidth: 3,
+                        pointBackgroundColor: chartData.sales.color,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: gradient
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: 'rgba(255,255,255,0.3)', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartMode(mode) {
+            if (!adminChart) return;
+            
+            const title = document.getElementById('chart-title');
+            const btnSales = document.getElementById('btn-sales');
+            const btnUsers = document.getElementById('btn-users');
+            
+            // UI Toggle
+            if (mode === 'sales') {
+                title.textContent = 'Vendas';
+                btnSales.className = "px-8 py-3 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest rounded-xl transition-all";
+                btnUsers.className = "px-8 py-3 text-white/40 text-[9px] font-black uppercase tracking-widest rounded-xl hover:text-white transition-all";
+            } else {
+                title.textContent = 'Usuários';
+                btnUsers.className = "px-8 py-3 bg-blue-500 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all";
+                btnSales.className = "px-8 py-3 text-white/40 text-[9px] font-black uppercase tracking-widest rounded-xl hover:text-white transition-all";
+            }
+
+            // Chart Morph
+            adminChart.data.datasets[0].label = chartData[mode].label;
+            adminChart.data.datasets[0].data = chartData[mode].data;
+            adminChart.data.datasets[0].borderColor = chartData[mode].color;
+            adminChart.data.datasets[0].pointBackgroundColor = chartData[mode].color;
+            
+            // Update Gradient based on color
+            const ctx = document.getElementById('adminChart').getContext('2d');
+            const newGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            newGradient.addColorStop(0, mode === 'sales' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)');
+            newGradient.addColorStop(1, 'rgba(0,0,0,0)');
+            adminChart.data.datasets[0].backgroundColor = newGradient;
+
+            adminChart.update('active');
+        }
+
+        function switchAdminTab(tab) {
+            const metricsPanel = document.getElementById('admin-panel-metrics');
+            const livePanel = document.getElementById('admin-panel-live');
+            const tabMetrics = document.getElementById('tab-metrics');
+            const tabLive = document.getElementById('tab-live');
+
+            if (tab === 'metrics') {
+                metricsPanel.classList.remove('hidden');
+                livePanel.classList.add('hidden');
+                tabMetrics.className = "px-8 py-3 bg-emerald-500 text-black text-[9px] font-black uppercase tracking-widest rounded-xl transition-all";
+                tabLive.className = "px-8 py-3 text-white/40 text-[9px] font-black uppercase tracking-widest rounded-xl hover:text-white transition-all flex items-center gap-3";
+            } else {
+                metricsPanel.classList.add('hidden');
+                livePanel.classList.remove('hidden');
+                tabLive.className = "px-8 py-3 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center gap-3";
+                tabMetrics.className = "px-8 py-3 text-white/40 text-[9px] font-black uppercase tracking-widest rounded-xl hover:text-white transition-all";
+                
+                // Start log simulation if not active
+                if (!window.logInterval) startLiveSimulation();
+            }
+        }
+
+        function startLiveSimulation() {
+            const feed = document.getElementById('live-terminal-feed');
+            const events = [
+                { type: 'SALE', msg: 'Novo Plano ELITE vendido para {USER}' },
+                { type: 'LOGIN', msg: 'Usuário {USER} conectou via Kernel Master' },
+                { type: 'TWEAK', msg: 'Otimização concluída com sucesso (+{FPS} FPS)' },
+                { type: 'SECURITY', msg: 'Acesso autorizado em área restrita (IP: 189.xxx.xx)' }
+            ];
+            const names = ['Gabriel', 'Lucas', 'Enzo', 'Matheus', 'Rodrigo', 'Arthur', 'Felipe'];
+
+            window.logInterval = setInterval(() => {
+                const event = events[Math.floor(Math.random() * events.length)];
+                const name = names[Math.floor(Math.random() * names.length)];
+                const fps = Math.floor(Math.random() * 60) + 40;
+                const time = new Date().toLocaleTimeString();
+                
+                let msg = event.msg.replace('{USER}', name).replace('{FPS}', fps);
+                let colorClass = 'text-emerald-500/80';
+                if (event.type === 'SALE') colorClass = 'text-yellow-400 font-bold';
+                if (event.type === 'SECURITY') colorClass = 'text-blue-400';
+
+                const log = document.createElement('p');
+                log.className = `text-[10px] ${colorClass} animate-in fade-in slide-in-from-left-2 duration-300`;
+                log.innerHTML = `<span class="opacity-30">[${time}]</span> [${event.type}]: ${msg}`;
+                
+                feed.prepend(log);
+                if (feed.children.length > 50) feed.lastElementChild.remove();
+            }, 3000);
+        }
+        function logout() {
+            localStorage.removeItem('collect_user');
+            localStorage.removeItem('admin_view_pref');
+            window.location.href = 'index.html';
+        }
+
+        function goBack() {
+            localStorage.removeItem('admin_view_pref');
+            window.location.href = 'index.html';
+        }
+
+        function switchPref() {
+            localStorage.removeItem('admin_view_pref');
+            window.location.href = 'admin-gate.html';
+        }
+
+        function previewPlan(targetPlan) {
+            // Save current state as temporal preview
+            const user = JSON.parse(localStorage.getItem('collect_user'));
+            sessionStorage.setItem('admin_real_plan', user.plan);
+            
+            // UI Visual Feedback
+            document.getElementById('preview-mode-banner').classList.replace('opacity-0', 'opacity-100');
+            document.getElementById('restore-admin-btn').classList.replace('scale-0', 'scale-100');
+            
+            // Temporary UI Update
+            updateDashboardUI(targetPlan);
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function restoreAdmin() {
+            const realPlan = sessionStorage.getItem('admin_real_plan');
+            if (realPlan) {
+                // UI Visual Reset
+                document.getElementById('preview-mode-banner').classList.replace('opacity-100', 'opacity-0');
+                document.getElementById('restore-admin-btn').classList.replace('scale-100', 'scale-0');
+                
+                // Restore Dashboard View
+                localStorage.setItem('admin_view_pref', 'admin');
+                updateDashboardUI(realPlan);
+                
+                sessionStorage.removeItem('admin_real_plan');
+            }
+        }
+
+        // Mouse Move Glow Follow
+        document.addEventListener('mousemove', (e) => {
+            const orbs = document.querySelectorAll('.glow-orb');
+            const x = (e.clientX / window.innerWidth) * 50;
+            const y = (e.clientY / window.innerHeight) * 50;
+            
+            orbs.forEach((orb, i) => {
+                const factor = i === 0 ? 1 : -1;
+                orb.style.transform = `translate(${x * factor}px, ${y * factor}px)`;
+            });
+        });
+    </script>
+</body>
+</html>
